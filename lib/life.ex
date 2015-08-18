@@ -97,7 +97,6 @@ defmodule Life do
     case {cell, get_neighbours(board, coord)} do
       {_,    3} -> true
       {true, 2} -> true
-      {true, _} -> false
       _         -> false
     end
   end
