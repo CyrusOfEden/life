@@ -1,7 +1,6 @@
 defmodule Life do
   @seed_representation "x"
   @defaults [
-    initial: nil,
     board: {14, 80},
     generations: 24,
     period: 200
