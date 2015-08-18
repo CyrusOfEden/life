@@ -1,27 +1,29 @@
 defmodule Life do
-  @period 200 # milliseconds per tick
+  @seed_representation "x"
   @defaults [
+    initial: nil,
     board: {14, 80},
     generations: 24,
-    seed: [
-      {2, 3}, {2, 4}, {2, 5}, {3, 4},
-      {11, 24}, {12, 25}, {12, 26}, {13, 26}
-    ]
+    period: 200
   ]
 
   def play(opts \\ []) do
     opts = Keyword.merge(@defaults, opts)
 
     generations = 1..opts[:generations]
-    {rows, columns} = opts[:board]
-    initial = seed(board(rows, columns), opts[:seed])
+    initial = if is_tuple(opts[:board]) do
+      {rows,columns} = opts[:board]
+      seed(board(rows, columns), opts[:seed])
+    else
+      seed_from_representation(opts[:board])
+    end
     next = fn _, board ->
       future = tick(board)
-      future |> inspect_board |> display_board
+      future |> inspect_board |> display_board(opts[:period])
       {future, future}
     end
 
-    Enum.map_reduce(generations, initial, next)
+    {_,_} = Enum.map_reduce(generations, initial, next)
     :ok
   end
 
@@ -31,6 +33,23 @@ defmodule Life do
         false
       end
     end
+  end
+
+  def seed_from_representation(representation) do
+    rows = representation |> String.split("\n")
+    columns = rows |> List.first |> String.graphemes
+    seeds =
+      rows
+      |> Enum.with_index
+      |> Enum.flat_map(fn {row, r} ->
+        row
+        |> String.codepoints
+        |> Enum.with_index
+        |> Enum.filter(fn {col,_} -> col == @seed_representation end)
+        |> Enum.map(fn {_,c} -> {r, c} end)
+      end)
+
+    seed(board(length(rows), length(columns)), seeds)
   end
 
   def seed(board, [{_,_,}|_] = seeds) do
@@ -76,10 +95,10 @@ defmodule Life do
 
   def next_cell_state(board, cell, coord) do
     case {cell, get_neighbours(board, coord)} do
-      {true, n} when n < 3  -> true
-      {true, n} when n > 3  -> false
-      {_,    n} when n == 3 -> true
-      _                     -> false
+      {_,    3} -> true
+      {true, 2} -> true
+      {true, _} -> false
+      _         -> false
     end
   end
 
@@ -92,9 +111,9 @@ defmodule Life do
     end
   end
 
-  def display_board(representation) when is_binary(representation) do
+  def display_board(representation, period) when is_binary(representation) do
     IO.write :os.cmd('clear')
     IO.puts representation
-    :timer.sleep(@period)
+    :timer.sleep(period)
   end
 end
